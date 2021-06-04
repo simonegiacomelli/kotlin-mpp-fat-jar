@@ -25,6 +25,24 @@ kotlin {
         testRuns["test"].executionTask.configure {
             useTestNG()
         }
+        compilations {
+            val main = getByName("main")
+            tasks.register<Jar>("buildFatJarV1") {
+                group = "application"
+                dependsOn(tasks.assemble) //assemble build
+                manifest {
+                    attributes["Main-Class"] = "JvmMainKt"
+                }
+                doFirst {
+                    from(
+                        configurations.getByName("runtimeClasspath")
+                            .map { if (it.isDirectory) it else zipTree(it) }, main.output.classesDirs
+                    )
+
+                }
+                archiveBaseName.set("${project.name}-fat2")
+            }
+        }
     }
     js(LEGACY) {
         binaries.executable()
@@ -80,11 +98,13 @@ tasks.getByName<JavaExec>("run") {
     classpath(tasks.getByName<Jar>("jvmJar"))
 }
 
-tasks.register<Jar>("buildFatJar3") {
+
+tasks.register<Jar>("buildFatJarV2") {
+    //this is equivalent to buildFatJarV1
     val main = kotlin.jvm().compilations.getByName("main")
     group = "application"
-    dependsOn(tasks.assemble)
-//    dependsOn(tasks.build)
+    dependsOn(tasks.assemble) //do not run tests
+//    dependsOn(tasks.build) //run tests
     manifest {
         attributes["Main-Class"] = "JvmMainKt"
     }
